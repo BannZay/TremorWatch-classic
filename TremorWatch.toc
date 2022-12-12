@@ -1,0 +1,17 @@
+## Title: Tremor Watch (Classic)
+## Version: 1.0
+## Interface: 30400
+## Notes: Indicates the presence of the tremor totem
+## Author: BannZay
+## X-Email: bannzay4@gmail.com
+## SavedVariables: TremorWatchDB, TremorWatchSettings
+## Dependencies: Scorpio
+
+TremorWatchFrame.lua
+LockableItem.lua
+TwLogger.lua
+ItemsPool.lua
+Database.lua
+Localization/enUS.lua
+
+TremorWatch.lua
