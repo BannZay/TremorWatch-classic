@@ -13,6 +13,13 @@ _FramesPoolSize = 1 -- hardcoded to 1 untill all bugs are fixed
 _FramesPool = ItemsPool[TremorWatchFrame]()
 _Addon.updatersQueue = {}
 
+local tempStorageName = "TwTempInitializer"
+
+_Aliases = {
+	"tremorWatch",
+	"tw"
+}
+
 function OnLoad()
 	_Addon:SetSavedVariable("TremorWatchSettings")
 		:UseConfigPanel()
@@ -52,6 +59,10 @@ function OnLoad()
 
 	_Database = Database()
 	
+	for _, alias in pairs(_Aliases) do
+		_Addon:RegisterSlashCommand(alias, function() _Addon:ShowConfigUI() end)
+	end
+
 	Scorpio.Continue(function()
 		Scorpio.Delay(0.5) -- let all events to fire before we consider an addon initialized
 		_Addon.Initialized = true
@@ -70,7 +81,6 @@ function OnLoad()
 
 		Log.Debug("Initialization completed")
 	end)
-
 end
 
 function OnFramePositionChanged(self)
@@ -118,7 +128,7 @@ function SetTremor(ownerGuid, unitGuid)
 	_FramesPool:Retrieve({ TargetId = unitGuid, OwnerId = ownerGuid})
 end
 
-function DestroyTremor(ownerGuid, unitGuid)
+function TryDestroyTremor(ownerGuid, unitGuid)
 	ownerGuid = ownerGuid or "NA"
 	unitGuid = unitGuid or "NA"
 
@@ -166,6 +176,13 @@ local function PlayHideSound()
 end
 
 __SystemEvent__()
+function ADDON_LOADED(name)
+	if name == _AddonRealName and _G[tempStorageName] then
+		_G[tempStorageName]:Dispose()
+	end
+end
+
+__SystemEvent__()
 function ZONE_CHANGED_NEW_AREA()
 	if not _Config.TestMode:GetValue() then
 		ReleaseAllFrames()
@@ -180,14 +197,14 @@ function COMBAT_LOG_EVENT_UNFILTERED()
 	if eventType == "SPELL_SUMMON" then
 		-- filter out ally shammy casts
 		if _Database:IsEarthTototemId(spellId, spellName) or spellId == SpellId.TOTEMIC_RECALL then
-			DestroyTremor(sourceGUID, destGUID)
+			TryDestroyTremor(sourceGUID, destGUID)
 		end
 
 		if spellId == SpellId.TREMOR_TOTEM then
 			SetTremor(sourceGUID, destGUID)
 		end
 	elseif eventType == "PARTY_KILL" then
-		DestroyTremor(nil, destGUID)
+		TryDestroyTremor(nil, destGUID)
 	end
 end
 
