@@ -1,0 +1,4 @@
+<Ui>
+    <Script file="libs\LibStub\LibStub.lua"/>
+    <Include file="Libs\DuringLoad\lib.xml"/>
+</Ui>

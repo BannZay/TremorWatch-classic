@@ -1,4 +1,4 @@
-namespace "TremorWatch.Core"
+namespace "TremorWatch.Components"
 
 __Arguments__ { AnyType } (Any)
 class "LockableItem" (function(_, eletype)

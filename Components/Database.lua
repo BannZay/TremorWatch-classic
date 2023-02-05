@@ -1,4 +1,4 @@
-namespace "TremorWatch.Core"
+namespace "TremorWatch.Components"
 
 enum "SpellId" {
     ID_TOTEMIC_RECALL = 36936,

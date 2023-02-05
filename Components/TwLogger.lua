@@ -1,4 +1,4 @@
-namespace "TremorWatch.Core"
+namespace "TremorWatch.Components"
 
 class "TwLogger" (function()
     inherit "Logger"

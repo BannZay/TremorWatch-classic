@@ -1,7 +1,7 @@
 local L = Scorpio("TremorWatch")._Locale("enUS", true)
 if not L then return end
 
-L["testmode"] = "Test mode"
+L["testmode"] = "Unlock frames"
 L["showpulses"] = "Show Pulses"
 L["size"] = "Size"
 L["alpha"] = "Alpha"

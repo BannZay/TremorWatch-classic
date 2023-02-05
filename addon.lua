@@ -1,6 +1,6 @@
 Scorpio "TremorWatch.Addon" "1.0.0"
 
-import "TremorWatch.Core"
+import "TremorWatch.Components"
 import "System.Reactive"
 
 Log = TwLogger()
@@ -12,8 +12,6 @@ _AddonRealName = ...
 _FramesPoolSize = 1 -- hardcoded to 1 untill all bugs are fixed
 _FramesPool = ItemsPool[TremorWatchFrame]()
 _Addon.updatersQueue = {}
-
-local tempStorageName = "TwTempInitializer"
 
 _Aliases = {
 	"tremorWatch",
@@ -173,13 +171,6 @@ end
 
 local function PlayHideSound()
 	PlaySound("blink1.wav")
-end
-
-__SystemEvent__()
-function ADDON_LOADED(name)
-	if name == _AddonRealName and _G[tempStorageName] then
-		_G[tempStorageName]:Dispose()
-	end
 end
 
 __SystemEvent__()

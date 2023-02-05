@@ -7,14 +7,18 @@
 ## SavedVariables: TremorWatchDB, TremorWatchSettings
 ## Dependencies: Scorpio
 
+libs\libs.xml
+
 Init.lua
-TremorWatchFrame.lua
-LockableItem.lua
-TwLogger.lua
-ItemsPool.lua
-Database.lua
-Localization/enUS.lua
 
-TremorWatch.lua
+Localization\localizations.xml
 
-Tests/tests.xml
+Components\TremorWatchFrame.lua
+Components\LockableItem.lua
+Components\TwLogger.lua
+Components\ItemsPool.lua
+Components\Database.lua
+
+addon.lua
+
+Tests\tests.xml

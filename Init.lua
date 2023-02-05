@@ -1,21 +1,5 @@
-local tempStorageName = "TwTempInitializer"
-_G[tempStorageName] = {}
-local tempStorage = _G[tempStorageName]
+local DuringLoad = LibStub("DuringLoad-1.0")
+ -- allows to omit PLoop() call at the begining of the lua scripts
 
-function tempStorage:Init()
-    -- allows to omit PLoop() call at the begining of the lua script
-    self._namespace = namespace
-    namespace = function(namespaceName)
-        local env = self._namespace(namespaceName)()
-        setfenv(2, env)
-    end
-end
-
-function tempStorage:Dispose()
-    namespace = self._namespace
-
-    _G[tempStorageName] = nil
-    wipe(tempStorage)
-end
-
-tempStorage:Init()
+local _namespace = namespace
+DuringLoad:Replace("namespace", function(namespaceName) local env = _namespace(namespaceName)() setfenv(2, env) end)
