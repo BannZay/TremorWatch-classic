@@ -1,6 +1,6 @@
 ## Title: Tremor Watch (Classic)
-## Version: 1.0
-## Interface: 30400
+## Version: 1.0.1
+## Interface: 30401
 ## Notes: Indicates the presence of the tremor totem
 ## Author: BannZay
 ## X-Email: bannzay4@gmail.com
