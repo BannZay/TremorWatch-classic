@@ -2,6 +2,7 @@ namespace "TremorWatch.Components"
 
 __Arguments__ { AnyType } (Any)
 class "ItemsPool" (function(_, eletype)
+    
     property "Items" { type = List[LockableItem[eletype]], default = List[LockableItem[eletype]]() }
 
     property "LockedItems" {

@@ -20,5 +20,3 @@ Components\ItemsPool.lua
 Components\Database.lua
 
 addon.lua
-
-Tests\tests.xml

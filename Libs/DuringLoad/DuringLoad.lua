@@ -1,17 +1,22 @@
-local library = LibStub:NewLibrary("DuringLoad-1.0", 1);
-if not library then return end
+local library = LibStub:NewLibrary("DuringLoad-1.0", 2);
 
-local currentAddonName = ...
+if not library then 
+    local library = LibStub("DuringLoad-1.0")
+    library.currentAddonName = ...
+    return
+else
+    library.currentAddonName = ...
+end
 
 local loadedAddons = {}
 local addonsInjections = {}
 
 -- todo: initialize addonName!
 function library:Replace(name, value, addonName)
-    addonName = addonName or currentAddonName
+    addonName = addonName or self.currentAddonName or "UNKNOWN"
     
     if loadedAddons[addonName] then
-        error("Addon was already loaded, this method should be called before addon initialized. Otherwise it makes no efferct")
+        error("Addon '" .. addonName .. "' was already loaded, this method should be called before addon initialized. Otherwise it makes no efferct")
     end
 
     local injections = addonsInjections[addonName]

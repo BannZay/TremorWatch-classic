@@ -199,7 +199,7 @@ function COMBAT_LOG_EVENT_UNFILTERED()
 	end
 end
 
-__Config__(_Config, "testMode", Boolean)
+__Config__(_Config, "testMode", Boolean, true)
 function _SetTestMode(value)
 	ReleaseAllFrames()
 	
@@ -214,7 +214,7 @@ function _SetLogLevel(level)
     Log.LogLevel = level
 end
 
-__Config__(_Config, "size", RangeValue[{ 30, 600, 1 }], 100) 
+__Config__(_Config, "size", RangeValue[{ 30, 600, 1 }], 50) 
 function _SetSize(value) end
 
 __Config__(_Config, "alpha", RangeValue[{ 0.1, 1, 0.1 }], 0.8) 
