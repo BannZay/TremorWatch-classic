@@ -40,7 +40,7 @@ enum "SpellId" {
 
 class "Database" (function()
 
-    function IsEarthTototemId(self, spellId, spellName)
+    function IsEarthTotemId(self, spellId, spellName)
         return self.earthTototemIds[spellId]
     end
 

@@ -182,20 +182,22 @@ end
 
 __SystemEvent__()
 function COMBAT_LOG_EVENT_UNFILTERED()
-	local _, eventType, _, sourceGUID, _, _, _, destGUID, _, _, _, spellId, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool = CombatLogGetCurrentEventInfo()
-		
+	local _, eventType, _, sourceGUID, _, _, _, destGUID, destName, destFlags, _, spellId, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool = CombatLogGetCurrentEventInfo()
+	
 	Log.Trace("%s, %s, %s, %s", eventType, destGUID, sourceGUID, spellId)
-	if eventType == "SPELL_SUMMON" then
-		-- filter out ally shammy casts
-		if _Database:IsEarthTototemId(spellId, spellName) or spellId == SpellId.TOTEMIC_RECALL then
+	
+	if bit.band(destFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) <= 0 == _Config.fto:GetValue() then
+		if _Database:IsEarthTotemId(spellId, spellName) or spellId == SpellId.TOTEMIC_RECALL then
 			TryDestroyTremor(sourceGUID, destGUID)
 		end
-
-		if spellId == SpellId.TREMOR_TOTEM then
-			SetTremor(sourceGUID, destGUID)
+		
+		if eventType == "SPELL_SUMMON" then
+			--if spellId == SpellId.TREMOR_TOTEM then
+				SetTremor(sourceGUID, destGUID)
+			--end
+		elseif eventType == "PARTY_KILL" or eventType == "UNIT_DIED" then
+			TryDestroyTremor(nil, destGUID)
 		end
-	elseif eventType == "PARTY_KILL" then
-		TryDestroyTremor(nil, destGUID)
 	end
 end
 
@@ -229,7 +231,7 @@ __Config__(_Config, "showPulses", true)
 function _SetShowPulses(value) end
 
 __Config__(_Config, "playSounds", true)
- function _SetPlaySounds(value)
+function _SetPlaySounds(value)
 	UpdateAllFrames(function (frame)
 		if value then
 			frame.OnTick = frame.OnTick + PlayTickSound
@@ -242,6 +244,9 @@ __Config__(_Config, "playSounds", true)
 		end
 	end)
 end
+
+__Config__(_Config, "fto", false)
+function _SetTrackFriendlyTotemsOnly(value) end
 
 -- disabled untill related bugs are fixed
 -- __Config__(_Config, "onArenaOnly", false)
