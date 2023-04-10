@@ -15,6 +15,20 @@ class "TremorWatchFrame" (function()
 
     property "ReleaseOnDemand" { type = Boolean, default = false }
 
+    property "Hostile" {
+        type = Boolean,
+        default = false,
+        handler = function(self, isHostile)
+            local borderColor = Color.BLUE
+            
+            if isHostile then 
+                borderColor = Color.RED 
+            end
+
+            Style[self].backdropBorderColor = borderColor
+        end
+    }
+
     event "OnTick"
 
     event "OnClose"
@@ -46,6 +60,7 @@ class "TremorWatchFrame" (function()
         texture = Texture,
         cooldown = Cooldown,
         mover = Mover,
+        border = Texture,
     }
     function __ctor(self)
         self.version = 0
@@ -54,9 +69,25 @@ class "TremorWatchFrame" (function()
     end
 end)
 
+local BORDER_SIZE = 5
+SHARE_STATUSBAR_SKIN            = {
+       
+
+}
+
 Style.UpdateSkin("Default",
     {
         [TremorWatchFrame] = {
+            backgroundTexture       = {
+                drawLayer           = "BACKGROUND",
+                setAllPoints        = true,
+                color               = Color(0, 0, 0, 0.1),
+            },
+            backdrop                = {
+                edgeFile            = [[Interface\Buttons\WHITE8x8]],
+                edgeSize            = BORDER_SIZE,
+            },
+            backdropBorderColor = Color.BLUE,
             location    = { Anchor("CENTER") },
             size        = Size(130, 130),
             frameStrata = FrameStrata("MEDIUM"),
@@ -75,7 +106,8 @@ Style.UpdateSkin("Default",
             },
             closeButton = {
                 location = { Anchor("TOPLEFT", -10, 10) },
-                visible = false
+                visible = false,
+                framelevel = 5,
             },
         }
     })

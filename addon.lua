@@ -22,14 +22,15 @@ _Aliases = {
 	"tw"
 }
 
-function SortPoolIcons()
+function SortPoolIcons(framesPool)
 	local leadingItem = nil
 
-	for _, item in pairs(_FramesPoolFriendly.UsedItems) do
-		Style[item].location = _SVManager.location
+	for _, item in pairs(framesPool.UsedItems) do
+		local location = item.Hostile and _SVManager.locationHostile or _SVManager.location
+		Style[item].location = location
 	end
 
-	for _, item in pairs(_FramesPoolFriendly.UsedItems) do
+	for _, item in pairs(framesPool.UsedItems) do
 		if leadingItem ~= nil then
 			item:AttachTo(leadingItem)
 		end
@@ -45,13 +46,24 @@ function SetupLogging(logger)
 	Log:LogSettingChanges(_Config.TestMode, "TestMode");
 end
 
+function InitializePool(pool, name, isHostile)
+	for i = 1, _FramesPoolSize do
+		local frame = TremorWatchFrame(name .. i)
+		frame.mover.OnStopMoving = frame.mover.OnStopMoving + OnFramePositionChanged
+		frame.OnClose = frame.OnClose + function(frame) _SetTestMode(false) end
+		frame.Hostile = isHostile
+		pool:AddItem(frame)
+	end
+
+	pool.OnReleased = pool.OnReleased + OnItemsPoolItemReleased + SortPoolIcons
+	pool.OnRetrieved = pool.OnRetrieved + OnItemsPoolItemRetrieved + SortPoolIcons
+end
+
 function OnLoad()
 	_Addon:SetSavedVariable("TremorWatchSettings")
 		:UseConfigPanel()
 	
 	_SVManager = SVManager("TremorWatchDB")
-
-	SetupLogging()
 
 	Style.UpdateSkin("Default", {
 		[TremorWatchFrame] =
@@ -59,7 +71,6 @@ function OnLoad()
 			Size = _Config.Size:Map(function(size) return Size(size or 0, size or 0) end),
 			Alpha = _Config.Alpha,
 			Movable = _Config.TestMode,
-			visible = _Config.TestMode,
 			cooldown = 
 			{ 
 				Alpha = _Config.ShowPulses:Map(function(showPulses) return showPulses and 1 or 0 end) 
@@ -67,15 +78,9 @@ function OnLoad()
 		}
 	}, true)
 
-	for i = 1, _FramesPoolSize do
-		local frame = TremorWatchFrame("TremorWatchFrame" .. i)
-		frame.mover.OnStopMoving = frame.mover.OnStopMoving + OnFramePositionChanged
-		frame.OnClose = frame.OnClose + function(frame) SetTestMode(frame:GetParent(), false) end
-		_FramesPoolFriendly:AddItem(frame)
-	end
-
-	_FramesPoolFriendly.OnReleased = _FramesPoolFriendly.OnReleased + OnItemsPoolItemReleased + SortPoolIcons
-	_FramesPoolFriendly.OnRetrieved = _FramesPoolFriendly.OnRetrieved + OnItemsPoolItemRetrieved + SortPoolIcons
+	SetupLogging()
+	InitializePool(_FramesPoolFriendly, "TremorWatchFriendlyFrame")
+	InitializePool(_FramesPoolHostile, "TremorWatchHostileFrame", true)
 
 	_Database = Database()
 	
@@ -97,14 +102,23 @@ function OnLoad()
 			_Addon.updatersQueue = nil
 		end
 
+		if (_Config.TestMode:GetValue()) then
+			_Config.TestMode = false
+			_Config.TestMode = true
+		end
 		Log.Debug("Initialization completed")
 	end)
+
 end
 
 function OnFramePositionChanged(self)
 	self = self.MoveTarget
 	local location = self:GetLocation({ Anchor("CENTER", 0, 0, "UIParent", "CENTER") })
-	_SVManager.location  = location
+	if self.Hostile then
+		_SVManager.locationHostile  = location
+	else
+		_SVManager.location  = location
+	end
 end
 
 __Arguments__(ItemsPool[TremorWatchFrame], TremorWatchFrame)
@@ -128,7 +142,7 @@ function IsOnArena()
 	return instanceType == "arena"
 end
 
-function SetTremor(ownerGuid, unitGuid, isFriendly)
+function SetTremor(ownerGuid, unitGuid, isHostile)
 	local isOnArenaOnly = _Config.onArenaOnly:GetValue()
 	if isOnArenaOnly and not IsOnArena() then
 		Log.Debug("Tremor set ignored: outside arena")
@@ -138,7 +152,9 @@ function SetTremor(ownerGuid, unitGuid, isFriendly)
 	ownerGuid = ownerGuid or "NA"
 	unitGuid = unitGuid or "NA"
 
-	for _, item in pairs(_FramesPoolFriendly.UsedItems) do
+	local pool = isHostile and _FramesPoolHostile or _FramesPoolFriendly
+
+	for _, item in pairs(pool.UsedItems) do
 		if item.TargetId == unitGuid or item.OwnerId == ownerGuid then
 			Log.Debug("Tremor set ignored: already set")
 			return nil
@@ -146,19 +162,25 @@ function SetTremor(ownerGuid, unitGuid, isFriendly)
 	end
 	
 	Log.Debug("Setting tremor icon UnitGuid = %s", unitGuid)
-	_FramesPoolFriendly:Retrieve({ TargetId = unitGuid, OwnerId = ownerGuid})
+	local frame = pool:Retrieve({ TargetId = unitGuid, OwnerId = ownerGuid})
+	frame.Hostile = isHostile
 end
 
-function TryDestroyTremor(ownerGuid, unitGuid)
+function TryDestroyTremor(ownerGuid, unitGuid, isHostile)
 	Log.Trace("Removing tremor icon, UnitGuid = %s", unitGuid)
 	ownerGuid = ownerGuid or "NA"
 	unitGuid = unitGuid or "NA"
 
-	for _, item in pairs(_FramesPoolFriendly.UsedItems) do
+	local pool = isHostile and _FramesPoolHostile or _FramesPoolFriendly
+
+	for _, item in pairs(pool.UsedItems) do
 		if item.TargetId == unitGuid or item.OwnerId == ownerGuid then
-			_FramesPoolFriendly:Release(item)
+			pool:Release(item)
+			return true
 		end
 	end
+
+	return false
 end
 
 function UpdateAllFrames(updater, forcedUpdate)
@@ -174,85 +196,106 @@ function UpdateAllFrames(updater, forcedUpdate)
 	for _, item in pairs(_FramesPoolFriendly.UsedItems) do
 		updater(item)
 	end
+
+	for _, item in pairs(_FramesPoolHostile.FreeItems) do
+		updater(item)
+	end
+
+	for _, item in pairs(_FramesPoolHostile.UsedItems) do
+		updater(item)
+	end
 end
 
-local function PlaySound(soundFileName)
-	if _Addon.Initialized then
+local function PlaySound(frame, soundFileName)
+	if _Addon.Initialized and frame.Hostile then
 		local soundFile = string.format("Interface\\AddOns\\%s\\Sounds\\%s", _AddonRealName, soundFileName)
 		PlaySoundFile(soundFile)
 	end
 end
 
-local function PlayTickSound()
+local function PlayTickSound(frame)
 	if _Config.ShowPulses:GetValue() then
-		PlaySound("short.wav")
+		PlaySound(frame, "short.wav")
 	end
 end
 
-local function PlayShowSound()
-	PlaySound("mallet-alert.mp3")
+local function PlayShowSound(frame)
+	PlaySound(frame, "mallet-alert.mp3")
 end
 
-local function PlayHideSound()
-	PlaySound("blink1.wav")
+local function PlayHideSound(frame)
+	PlaySound(frame, "blink1.wav")
 end
 
 __SystemEvent__()
 function ZONE_CHANGED_NEW_AREA()
 	if not _Config.TestMode:GetValue() then
 		_FramesPoolFriendly:ReleaseAll()
+		_FramesPoolHostile:ReleaseAll()
 	end
 end
 
 __SystemEvent__()
 function COMBAT_LOG_EVENT_UNFILTERED()
+	if _Config.TestMode:GetValue() then return end
+
 	local _, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, _, spellId, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool = CombatLogGetCurrentEventInfo()
 	
-	local friendlyCast = bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) <= 0
-	Log.Trace("CLEU: %s, %s, %s, %s, Friendly = %s", eventType, destGUID, sourceGUID, spellId, friendlyCast)
+	local hostileCast = bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) > 0
+	Log.Trace("CLEU: %s, %s, %s, %s, Hostile = %s", eventType, destGUID, sourceGUID, spellId, hostileCast)
 		
 	if _Database:IsEarthTotemId(spellId, spellName) or spellId == SpellId.ID_TOTEMIC_RECALL then
-		Log.Debug("Removing tremor, triggered event = %s", "Shaman casted other earth totem or totem recall")
-		TryDestroyTremor(sourceGUID, destGUID)
+		local removed = TryDestroyTremor(sourceGUID, destGUID, hostileCast)
+		
+		if removed then
+			Log.Debug("Removed tremor, triggered event = %s", "Shaman casted other earth totem or totem recall")
+		end
+	end
+
+	if eventType == "SWING_DAMAGE" or "SPELL_DAMAGE" then
+		local removed = TryDestroyTremor(nil, destGUID, not hostileCast)
+		
+		if removed then
+			Log.Debug("Removed tremor, triggered event = %s", "Totem was attacked")
+		end
 	end
 	
-	if friendlyCast == _Config.fto:GetValue() then
-		if eventType == "SPELL_SUMMON" then
-			if spellId == SpellId.TREMOR_TOTEM then
-				SetTremor(sourceGUID, destGUID)
+	if eventType == "SPELL_SUMMON" then
+		if spellId == SpellId.TREMOR_TOTEM then
+			if (not hostileCast and _Config.tft:GetValue()) or (hostileCast and _Config.tht:GetValue()) then
+				SetTremor(sourceGUID, destGUID, hostileCast)
+			else
+				Log.Trace("Ignored set for non tracking totem type = %s", hostileCast and "hostile" or "friendly")
 			end
-		-- elseif eventType == "PARTY_KILL" or eventType == "UNIT_DIED" then
-			-- Log.Debug("Removing tremor, triggered event = %s", eventType)
-			-- TryDestroyTremor(nil, destGUID)
-		end
-	else
-		if eventType == "SWING_DAMAGE" or "SPELL_DAMAGE" then
-			TryDestroyTremor(nil, destGUID)
 		end
 	end
 end
 
 __Config__(_Config, "testMode", Boolean, true)
 function _SetTestMode(value)
-	local leadingFrame = _FramesPoolFriendly.UsedItems:First();
-	_FramesPoolFriendly:ReleaseAll()
-
-	if value then
-		_FramesPoolFriendly:RetrieveAll({TargetId = "test"})
-		leadingFrame = _FramesPoolFriendly.UsedItems:First();
+	if _Config.tft:GetValue() then
+		SetTestModeForPool(_FramesPoolFriendly, value)
 	end
 	
-	if _Addon.Initialized then
-		SetTestMode(leadingFrame, value)
+	if _Config.tht:GetValue() then
+		SetTestModeForPool(_FramesPoolHostile, value)
 	end
 end
 
-function SetTestMode(frame, value)
-	_Config.TestMode = value
-	Style[frame].mover.EnableMouseClicks = value
-	Style[frame].closeButton.Visible = value
-end
+function SetTestModeForPool(pool, value)
+	local leadingFrame = pool.UsedItems:First();
+	pool:ReleaseAll()
 
+	if value then
+		pool:RetrieveAll({TargetId = "test"})
+		leadingFrame = pool.UsedItems:First();
+	end
+	
+	if leadingFrame ~= nil then
+		Style[leadingFrame].mover.EnableMouseClicks = value
+		Style[leadingFrame].closeButton.Visible = value
+	end
+end
 
 __Config__(_Config, "logLevel", Logger.LogLevel, Logger.LogLevel.Info)
 function _SetLogLevel(level)
@@ -288,13 +331,20 @@ function _SetPlaySounds(value)
 	end)
 end
 
-__Config__(_Config, "fto", false)
-function _SetTrackFriendlyTotemsOnly(value) end
+__Config__(_Config, "tft", true)
+function _SetTrackFriendlyTotems(value)
+	SetTestModeForPool(_FramesPoolFriendly, value and _Config.TestMode:GetValue())
+end
+
+__Config__(_Config, "tht", true)
+function _SetTrackEnemiesTotems(value)
+	SetTestModeForPool(_FramesPoolHostile, value and _Config.TestMode:GetValue())
+end
 
 __Config__(_Config, "onArenaOnly", false)
  function _SetOnArenaOnly(value)
 	if value and not IsOnArena() then
-		
 		_FramesPoolFriendly:ReleaseAll()
+		_FramesPoolHostile:ReleaseAll()
 	end
 end
