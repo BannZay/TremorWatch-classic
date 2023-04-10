@@ -65,6 +65,9 @@ function OnLoad()
 	
 	_SVManager = SVManager("TremorWatchDB")
 
+	_SVManager.location = _SVManager.location or { Anchor("CENTER", 0, -55, "UIParent", "CENTER") }
+	_SVManager.locationHostile = _SVManager.locationHostile or { Anchor("CENTER", 0, 0, "UIParent", "CENTER") }
+
 	Style.UpdateSkin("Default", {
 		[TremorWatchFrame] =
 		{
