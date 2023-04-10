@@ -9,7 +9,7 @@ Log.UseTimeFormat = false
 
 _AddonRealName = ...
 
-_FramesPoolSize = 1 -- hardcoded to 1 untill all bugs are fixed
+_FramesPoolSize = 3
 _FramesPool = ItemsPool[TremorWatchFrame]()
 _Addon.updatersQueue = {}
 
@@ -109,8 +109,9 @@ function IsOnArena()
 end
 
 function SetTremor(ownerGuid, unitGuid)
-	local isOnArenaOnly = true -- _Config.onArenaOnly:GetValue()
+	local isOnArenaOnly = _Config.onArenaOnly:GetValue()
 	if isOnArenaOnly and not IsOnArena() then
+		Log.Trace("Tremor set ignored outside arena")
 		return nil
 	end
 
@@ -122,11 +123,14 @@ function SetTremor(ownerGuid, unitGuid)
 			return nil
 		end
 	end
-
+	
+	
+	Log.Trace("Setting tremor icon up UnitGuid = %s", unitGuid)
 	_FramesPool:Retrieve({ TargetId = unitGuid, OwnerId = ownerGuid})
 end
 
 function TryDestroyTremor(ownerGuid, unitGuid)
+	Log.Trace("Removing tremor icon, UnitGuid = %s", unitGuid)
 	ownerGuid = ownerGuid or "NA"
 	unitGuid = unitGuid or "NA"
 
@@ -182,20 +186,28 @@ end
 
 __SystemEvent__()
 function COMBAT_LOG_EVENT_UNFILTERED()
-	local _, eventType, _, sourceGUID, _, _, _, destGUID, destName, destFlags, _, spellId, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool = CombatLogGetCurrentEventInfo()
+	local _, eventType, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, _, spellId, spellName, spellSchool, extraSpellId, extraSpellName, extraSpellSchool = CombatLogGetCurrentEventInfo()
 	
-	Log.Trace("%s, %s, %s, %s", eventType, destGUID, sourceGUID, spellId)
-	
-	if bit.band(destFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) <= 0 == _Config.fto:GetValue() then
-		if _Database:IsEarthTotemId(spellId, spellName) or spellId == SpellId.TOTEMIC_RECALL then
-			TryDestroyTremor(sourceGUID, destGUID)
-		end
+	local friendlyCast = bit.band(sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) <= 0
+	Log.Trace("%s, %s, %s, %s, Friendly = %s", eventType, destGUID, sourceGUID, spellId, friendlyCast)
 		
+	if _Database:IsEarthTotemId(spellId, spellName) or spellId == SpellId.ID_TOTEMIC_RECALL then
+		Log.Debug("Removing tremor, triggered event = %s", "Shaman casted other earth totem or totem recall")
+		TryDestroyTremor(sourceGUID, destGUID)
+	end
+	
+	if friendlyCast == _Config.fto:GetValue() then
 		if eventType == "SPELL_SUMMON" then
-			--if spellId == SpellId.TREMOR_TOTEM then
+			if spellId == SpellId.TREMOR_TOTEM then
 				SetTremor(sourceGUID, destGUID)
-			--end
-		elseif eventType == "PARTY_KILL" or eventType == "UNIT_DIED" then
+			end
+		-- elseif eventType == "PARTY_KILL" or eventType == "UNIT_DIED" then
+			-- Log.Debug("Removing tremor, triggered event = %s", eventType)
+			-- TryDestroyTremor(nil, destGUID)
+		end
+	else
+		if eventType == "SWING_DAMAGE" or "SPELL_DAMAGE" then
+			print("swinged at", destGUID)
 			TryDestroyTremor(nil, destGUID)
 		end
 	end
@@ -248,10 +260,9 @@ end
 __Config__(_Config, "fto", false)
 function _SetTrackFriendlyTotemsOnly(value) end
 
--- disabled untill related bugs are fixed
--- __Config__(_Config, "onArenaOnly", false)
- -- function _SetOnArenaOnly(value)
-	-- if value and not IsOnArena() then
-		-- ReleaseAllFrames()
-	-- end
--- end
+__Config__(_Config, "onArenaOnly", false)
+ function _SetOnArenaOnly(value)
+	if value and not IsOnArena() then
+		ReleaseAllFrames()
+	end
+end
