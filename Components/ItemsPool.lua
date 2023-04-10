@@ -2,20 +2,8 @@ namespace "TremorWatch.Components"
 
 __Arguments__ { AnyType } (Any)
 class "ItemsPool" (function(_, eletype)
-    
-    property "Items" { type = List[LockableItem[eletype]], default = List[LockableItem[eletype]]() }
-
-    property "LockedItems" {
-        get = function(self)
-            local items = {}
-            for i, lockableItem in ipairs(self.Items) do
-                if lockableItem.Locked then
-                    table.insert(items, lockableItem.Item)
-                end
-            end
-            return items
-        end
-    }
+    property "FreeItems" { type = List[eletype], factory = function() return List[eletype]() end }
+    property "UsedItems" { type = List[eletype], default = function() return List[eletype]() end }
 
     event "OnRetrieved"
 
@@ -25,29 +13,48 @@ class "ItemsPool" (function(_, eletype)
 
     __Arguments__(eletype)
     function AddItem(self, item)
-        local lockableItem = LockableItem[eletype](item)
-        self.Items:Insert(lockableItem)
+        self.FreeItems:Insert(item)
     end
 
     function Retrieve(self, ...)
-        for i, v in pairs(self.Items) do
-            if not v.locked then
-                v.locked = true
-                self.OnRetrieved(self, v.Item, ...)
-                return v.Item
-            end
+        local item = self.FreeItems:RemoveByIndex()
+
+        if item == nil then
+            return nil
         end
+        
+        self.UsedItems:Insert(item)
+        self.OnRetrieved(self, item, ...);
+
+        return item
     end
 
     __Arguments__(eletype)
     function Release(self, item, ...)
-        for i, v in pairs(self.Items) do
-            if v.Item == item and v.locked then
-                self.OnReleased(self, item, ...)
-                v.locked = false
-                return true
-            end
+        local index = self.UsedItems:IndexOf(item)
+
+        if not index then
+            return false
         end
-        return false
+
+        local item = self.UsedItems:RemoveByIndex(index);
+        
+        self.FreeItems:Insert(item)
+        self.OnReleased(self, item, ...)
+
+        return true
+    end
+
+    function ReleaseAll(self, ...)
+        local item = self.UsedItems[1]
+
+        while(item ~= nil) do
+            Release(self, item, ...)
+            item = self.UsedItems[1]
+        end
+    end
+
+    function RetrieveAll(self, ...)
+        while Retrieve(self, ...) ~= nil do end
     end
 end)

@@ -94,7 +94,6 @@
         "event",
         "property",
         "List",
-        "LockableItem",
         "Callable",
         "super",
         "UI",
@@ -106,6 +105,7 @@
         "Cooldown",
         "UnitTest",
         "__Test__",
-        "Assert"
+        "Assert",
+        "__NoRawSet__"
     ]
 }

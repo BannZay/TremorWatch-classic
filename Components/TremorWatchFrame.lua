@@ -19,7 +19,6 @@ class "TremorWatchFrame" (function()
 
     event "OnClose"
 
-
     __Arguments__(UI)
     function AttachTo(self, target)
         Style[self].location = { Anchor("LEFT", 0, 0, target:GetName(), "RIGHT") }
@@ -76,6 +75,7 @@ Style.UpdateSkin("Default",
             },
             closeButton = {
                 location = { Anchor("TOPLEFT", -10, 10) },
+                visible = false
             },
         }
     })

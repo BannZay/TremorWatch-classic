@@ -13,10 +13,11 @@ Init.lua
 
 Localization\localizations.xml
 
+Components\List.lua
 Components\TremorWatchFrame.lua
-Components\LockableItem.lua
 Components\TwLogger.lua
 Components\ItemsPool.lua
 Components\Database.lua
+Components\Test.lua
 
 addon.lua
