@@ -1,7 +1,7 @@
 ## Title: Tremor Watch (Classic)
-## Version: 1.0.1
-## Interface: 30401
-## Notes: Indicates the presence of the tremor totem
+## Version: 1.0.2
+## Interface: 30402
+## Notes: Draws the pulses of ally/hostile tremor totems
 ## Author: BannZay
 ## X-Email: bannzay4@gmail.com
 ## SavedVariables: TremorWatchDB, TremorWatchSettings
